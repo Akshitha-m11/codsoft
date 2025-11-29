@@ -1,0 +1,31 @@
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+movies = {
+    'title': [
+        'Inception','Interstellar','The Dark Knight','Avatar','Titanic',
+        'The Matrix','John Wick','The Avengers','Iron Man','Thor'
+    ],
+    'genre': [
+        'sci-fi action','sci-fi drama','action crime','fantasy sci-fi','romance drama',
+        'sci-fi action','action thriller','action fantasy','action sci-fi','fantasy action'
+    ]
+}
+
+df = pd.DataFrame(movies)
+tfidf = TfidfVectorizer()
+tfidf_matrix = tfidf.fit_transform(df['genre'])
+similarity = cosine_similarity(tfidf_matrix)
+
+def recommend(movie):
+    if movie not in df['title'].values:
+        return []
+    idx = df[df['title'] == movie].index[0]
+    scores = list(enumerate(similarity[idx]))
+    scores = sorted(scores, key=lambda x: x[1], reverse=True)[1:6]
+    rec = [df.iloc[i[0]]['title'] for i in scores]
+    return rec
+
+movie_name = "Inception"
+print(recommend(movie_name))
