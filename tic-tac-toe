@@ -1,0 +1,103 @@
+import tkinter as tk
+from tkinter import messagebox
+import random
+import math
+
+EMPTY = " "
+HUMAN = "X"
+AI = "O"
+
+def create_board():
+    return [EMPTY] * 9
+
+def free_spots(board):
+    return [i for i, v in enumerate(board) if v == EMPTY]
+
+def get_winner(board):
+    win_positions = [
+        (0,1,2),(3,4,5),(6,7,8),
+        (0,3,6),(1,4,7),(2,5,8),
+        (0,4,8),(2,4,6)
+    ]
+    for a,b,c in win_positions:
+        if board[a] == board[b] == board[c] and board[a] != EMPTY:
+            return board[a]
+    return None
+
+def is_game_over(board):
+    return get_winner(board) is not None or all(cell != EMPTY for cell in board)
+
+def evaluate(board):
+    winner = get_winner(board)
+    if winner == AI: return 1
+    if winner == HUMAN: return -1
+    return 0
+
+def minimax(board, depth, maximizing):
+    score = evaluate(board)
+    if score != 0 or depth == 0 or is_game_over(board):
+        return score, None
+    if maximizing:
+        best_score = -math.inf
+        best_move = None
+        for i in free_spots(board):
+            board[i] = AI
+            s, _ = minimax(board, depth-1, False)
+            board[i] = EMPTY
+            if s > best_score:
+                best_score = s
+                best_move = i
+        return best_score, best_move
+    else:
+        best_score = math.inf
+        best_move = None
+        for i in free_spots(board):
+            board[i] = HUMAN
+            s, _ = minimax(board, depth-1, True)
+            board[i] = EMPTY
+            if s < best_score:
+                best_score = s
+                best_move = i
+        return best_score, best_move
+
+class TicTacToeGUI:
+    def __init__(self):
+        self.root = tk.Tk()
+        self.root.title("Tic-Tac-Toe")
+        self.board = create_board()
+        self.buttons = []
+        self.human_turn = True
+        self.create_widgets()
+        self.root.mainloop()
+
+    def create_widgets(self):
+        frame = tk.Frame(self.root)
+        frame.pack(padx=10, pady=10)
+        for i in range(9):
+            b = tk.Button(frame, text=EMPTY, font=("Arial", 24), width=5, height=2,
+                          command=lambda i=i: self.human_move(i))
+            b.grid(row=i//3, column=i%3)
+            self.buttons.append(b)
+        control = tk.Frame(self.root)
+        control.pack(pady=8)
+        tk.Button(control, text="New Game", command=self.reset).pack(side="left", padx=5)
+        tk.Button(control, text="AI First", command=self.ai_first).pack(side="left", padx=5)
+        tk.Button(control, text="Quit", command=self.root.destroy).pack(side="left", padx=5)
+
+    def human_move(self, idx):
+        if not self.human_turn or self.board[idx] != EMPTY or is_game_over(self.board):
+            return
+        self.make_move(idx, HUMAN)
+        if not is_game_over(self.board):
+            self.root.after(200, self.ai_move)
+        else:
+            self.end_game()
+
+    def ai_move(self):
+        if is_game_over(self.board):
+            self.end_game()
+            return
+        _, move = minimax(self.board, 9, True)
+        if move is None:
+            move = random.choice(free_spots(self.board))
+        self.make_move(move, AI)
